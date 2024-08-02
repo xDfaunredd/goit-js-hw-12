@@ -42,10 +42,33 @@ const renderFunc = dataArray => {
   return itemsArr;
 };
 
+class itemService {
+  constructor(itemToService, hiddenClass) {
+    this.itemToService = itemToService;
+    this.hiddenClass = hiddenClass;
+  }
+
+  hide() {
+    this.itemToService.classList.add(this.hiddenClass);
+  }
+
+  show() {
+    this.itemToService.classList.remove(this.hiddenClass);
+  }
+
+  disable() {
+    this.itemToService.disabled = true;
+  }
+
+  enable() {
+    this.itemToService.disabled = false;
+  }
+}
+
 // lightbox initialization
 var lightbox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
 });
 
-export { renderFunc, lightbox };
+export { renderFunc, itemService, lightbox };

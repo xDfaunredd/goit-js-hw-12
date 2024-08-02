@@ -1,31 +1,51 @@
+import { renderFunc, itemService, lightbox } from './js/render-function';
+import receiveDataFromServer from './js/pixabay-api';
+
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import receiveDataFromServer from './js/pixabay-api';
-import { renderFunc, lightbox } from './js/render-function';
-
-const form = document.querySelector('.form');
-const inputValue = form.elements.information;
-const gallery = document.querySelector('.gallery');
-const button = document.querySelector('.button.position');
 const loader = document.querySelector('.loader');
 const loadMoreLoader = document.querySelector('.load-more');
+const loadMoreButton = document.querySelector('.position');
+const form = document.querySelector('.form');
+const gallery = document.querySelector('.gallery');
 
-let currentInputValue = '';
+let params = {
+  page: 1,
+  perPage: 15,
+  maxPages: 0,
+  q: '',
+};
 
-const drawDataFromServer = async event => {
+const loaderHide = new itemService(loader, 'visually-hidden');
+const loaderMoreHide = new itemService(loadMoreLoader, 'visually-hidden');
+const buttonMoreHide = new itemService(loadMoreButton, 'visually-hidden');
+
+buttonMoreHide.hide();
+loaderHide.hide();
+loaderMoreHide.hide();
+
+async function searchFunc(event) {
   event.preventDefault();
 
-  currentInputValue = inputValue.value;
+  params.page = 1;
 
-  loader.classList.remove('visually-hidden');
+  params.q = event.currentTarget.elements.information.value.trim();
+
+  console.log(params.q);
 
   try {
-    const data = await receiveDataFromServer(currentInputValue, true);
+    const data = await receiveDataFromServer(params);
 
-    if (data.total === 0) {
-      button.classList.add('visually-hidden');
-      gallery.innerHTML = '';
+    console.log(data);
+
+    const itemsToDrawArr = renderFunc(data.hits);
+    gallery.innerHTML = '';
+    gallery.insertAdjacentHTML('afterbegin', itemsToDrawArr);
+
+    lightbox.refresh();
+
+    if (data.totalHits === 0) {
       return iziToast.error({
         message:
           'Sorry, there are no images matching your search query. Please try again!',
@@ -33,51 +53,52 @@ const drawDataFromServer = async event => {
       });
     }
 
-    gallery.innerHTML = '';
-    const itemsArr = renderFunc(data.hits);
-    gallery.insertAdjacentHTML('afterbegin', itemsArr);
+    params.maxPages = Math.ceil(data.totalHits / params.perPage);
 
-    lightbox.refresh();
+    console.log(params.page);
+    console.log(params.maxPages);
 
-    button.classList.remove('visually-hidden');
-  } catch (error) {
-    gallery.innerHTML = '';
-    console.log(error);
-  } finally {
-    loader.classList.add('visually-hidden');
-    form.reset();
-  }
-};
-
-const loadMoreContent = async () => {
-  button.disabled = true;
-  loadMoreLoader.classList.remove('visually-hidden');
-
-  try {
-    const data = await receiveDataFromServer(currentInputValue);
-
-    loadMoreLoader.classList.add('visually-hidden');
-
-    const itemsArr = renderFunc(data.hits);
-    gallery.insertAdjacentHTML('beforeend', itemsArr);
-
-    lightbox.refresh();
-
-    if (data.totalHits - gallery.childElementCount <= 0) {
-      iziToast.info({
-        message: "We're sorry, but you've reached the end of search results.",
-        position: 'topRight',
-      });
-
-      button.classList.add('visually-hidden');
+    if (params.page !== params.maxPages) {
+      buttonMoreHide.show();
+      loadMoreButton.addEventListener('click', loadMore);
+    } else {
+      buttonMoreHide.hide();
+      loadMoreButton.removeEventListener('click', loadMore);
     }
   } catch (error) {
     console.log(error);
   } finally {
-    button.disabled = false;
+    form.reset();
   }
-};
+}
 
-button.addEventListener('click', loadMoreContent);
+async function loadMore() {
+  buttonMoreHide.disable();
+  params.page += 1;
 
-form.addEventListener('submit', drawDataFromServer);
+  try {
+    const data = await receiveDataFromServer(params);
+
+    const itemsToDrawArr = renderFunc(data.hits);
+
+    gallery.insertAdjacentHTML('beforeend', itemsToDrawArr);
+
+    lightbox.refresh();
+
+    console.log(gallery.childElementCount);
+    if (params.maxPages === params.page) {
+      buttonMoreHide.hide();
+      loadMoreButton.removeEventListener('click', loadMore);
+      return iziToast.info({
+        message: "We're sorry, but you've reached the end of search results",
+        position: 'topRight',
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  } finally {
+    buttonMoreHide.enable();
+  }
+}
+
+form.addEventListener('submit', searchFunc);
