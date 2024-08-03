@@ -12,7 +12,7 @@ const gallery = document.querySelector('.gallery');
 
 let params = {
   page: 1,
-  perPage: 156,
+  perPage: 15,
   maxPages: 0,
   q: '',
   heightOfCard: 0,
