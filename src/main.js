@@ -12,40 +12,32 @@ const gallery = document.querySelector('.gallery');
 
 let params = {
   page: 1,
-  perPage: 15,
+  perPage: 156,
   maxPages: 0,
   q: '',
+  heightOfCard: 0,
 };
 
 const loaderHide = new itemService(loader, 'visually-hidden');
 const loaderMoreHide = new itemService(loadMoreLoader, 'visually-hidden');
 const buttonMoreHide = new itemService(loadMoreButton, 'visually-hidden');
 
-buttonMoreHide.hide();
-loaderHide.hide();
-loaderMoreHide.hide();
-
 async function searchFunc(event) {
   event.preventDefault();
 
+  loaderHide.show();
+
   params.page = 1;
-
   params.q = event.currentTarget.elements.information.value.trim();
-
-  console.log(params.q);
 
   try {
     const data = await receiveDataFromServer(params);
 
-    console.log(data);
-
-    const itemsToDrawArr = renderFunc(data.hits);
-    gallery.innerHTML = '';
-    gallery.insertAdjacentHTML('afterbegin', itemsToDrawArr);
-
-    lightbox.refresh();
-
     if (data.totalHits === 0) {
+      loaderHide.hide();
+      gallery.innerHTML = '';
+      buttonMoreHide.hide();
+
       return iziToast.error({
         message:
           'Sorry, there are no images matching your search query. Please try again!',
@@ -53,10 +45,18 @@ async function searchFunc(event) {
       });
     }
 
+    const itemsToDrawArr = renderFunc(data.hits);
+    loaderHide.hide();
+
+    gallery.innerHTML = '';
+    gallery.insertAdjacentHTML('afterbegin', itemsToDrawArr);
+
+    params.heightOfCard =
+      gallery.firstElementChild.getBoundingClientRect().height;
+
     params.maxPages = Math.ceil(data.totalHits / params.perPage);
 
-    console.log(params.page);
-    console.log(params.maxPages);
+    lightbox.refresh();
 
     if (params.page !== params.maxPages) {
       buttonMoreHide.show();
@@ -66,7 +66,14 @@ async function searchFunc(event) {
       loadMoreButton.removeEventListener('click', loadMore);
     }
   } catch (error) {
-    console.log(error);
+    loaderHide.hide();
+    gallery.innerHTML = '';
+
+    return iziToast.warning({
+      title: 'Error : ',
+      message: error,
+      position: 'topRight',
+    });
   } finally {
     form.reset();
   }
@@ -74,6 +81,7 @@ async function searchFunc(event) {
 
 async function loadMore() {
   buttonMoreHide.disable();
+  loaderMoreHide.show();
   params.page += 1;
 
   try {
@@ -81,11 +89,16 @@ async function loadMore() {
 
     const itemsToDrawArr = renderFunc(data.hits);
 
+    loaderMoreHide.hide();
+
     gallery.insertAdjacentHTML('beforeend', itemsToDrawArr);
+
+    console.log(gallery.childElementCount);
 
     lightbox.refresh();
 
-    console.log(gallery.childElementCount);
+    window.scrollBy(0, 2 * params.heightOfCard);
+
     if (params.maxPages === params.page) {
       buttonMoreHide.hide();
       loadMoreButton.removeEventListener('click', loadMore);
@@ -95,7 +108,15 @@ async function loadMore() {
       });
     }
   } catch (error) {
-    console.log(error);
+    loaderHide.hide();
+    buttonMoreHide.hide();
+    gallery.innerHTML = '';
+    loadMoreButton.removeEventListener('click', loadMore);
+    return iziToast.warning({
+      title: 'Error : ',
+      message: error,
+      position: 'topRight',
+    });
   } finally {
     buttonMoreHide.enable();
   }
