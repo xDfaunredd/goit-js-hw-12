@@ -98,7 +98,7 @@ async function loadMore() {
 
     lightbox.refresh();
 
-    window.scrollBy(0, 2 * params.heightOfCard);
+    window.scrollBy({ top: 2 * params.heightOfCard, behavior: 'smooth' });
 
     if (params.maxPages === params.page) {
       buttonMoreHide.hide();
