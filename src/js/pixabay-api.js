@@ -21,3 +21,4 @@ const receiveDataFromServer = async ({ page, perPage, q }) => {
 };
 
 export default receiveDataFromServer;
+  

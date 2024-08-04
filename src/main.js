@@ -25,6 +25,8 @@ const buttonMoreHide = new itemService(loadMoreButton, 'visually-hidden');
 async function searchFunc(event) {
   event.preventDefault();
 
+  loadMoreButton.removeEventListener('click', loadMore);
+
   loaderHide.show();
 
   params.page = 1;
@@ -67,7 +69,6 @@ async function searchFunc(event) {
     }
   } catch (error) {
     loaderHide.hide();
-    gallery.innerHTML = '';
 
     return iziToast.warning({
       title: 'Error : ',
@@ -110,7 +111,6 @@ async function loadMore() {
   } catch (error) {
     loaderHide.hide();
     buttonMoreHide.hide();
-    gallery.innerHTML = '';
     loadMoreButton.removeEventListener('click', loadMore);
     return iziToast.warning({
       title: 'Error : ',
